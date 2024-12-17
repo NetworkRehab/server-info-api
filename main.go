@@ -3,10 +3,10 @@ package main
 import (
 	"encoding/json"
 	"log"
-	"net/http"
-	"strings"
 	"net"
+	"net/http"
 	"os"
+	"strings"
 )
 
 type Response struct {
@@ -17,7 +17,7 @@ type Response struct {
 // This map is used to store the mapping between IP addresses and hostnames.
 // This would be replaced with a lookup function to something like infoblox.
 var ipHostnameMap = map[string]string{
-	"127.0.0.1": "localhost",
+	"127.0.0.1":   "localhost",
 	"192.168.1.2": "host2",
 	// ... add more IPs and hostnames as needed ...
 }

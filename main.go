@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"net"
+	"os"
 )
 
 type Response struct {
@@ -24,11 +26,21 @@ func ReadUserIP(r *http.Request) string {
 	IPAddress := r.Header.Get("X-Real-Ip")
 	if IPAddress == "" {
 		IPAddress = r.Header.Get("X-Forwarded-For")
+		if IPAddress != "" {
+			// X-Forwarded-For may contain multiple IPs, take the first one
+			parts := strings.Split(IPAddress, ",")
+			IPAddress = strings.TrimSpace(parts[0])
+		}
 	}
 	if IPAddress == "" {
-		IPAddress = r.RemoteAddr
+		ip, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			// Fallback to r.RemoteAddr if SplitHostPort fails
+			ip = r.RemoteAddr
+		}
+		IPAddress = ip
 	}
-	return strings.Split(IPAddress, ":")[0]
+	return IPAddress
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -50,9 +62,13 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	log.Println("Starting server on :8081")
+	port := ":8081"
+	if p := os.Getenv("PORT"); p != "" {
+		port = ":" + p
+	}
+	log.Printf("Starting server on %s", port)
 	http.HandleFunc("/", handler)
-	if err := http.ListenAndServe(":8081", nil); err != nil {
+	if err := http.ListenAndServe(port, nil); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
 }

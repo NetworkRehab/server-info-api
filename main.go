@@ -10,8 +10,10 @@ import (
 )
 
 type Response struct {
-	IP       string `json:"ip"`
-	Hostname string `json:"hostname"`
+	IP              string `json:"ip"`
+	Hostname        string `json:"hostname"`
+	FQDN2IP            string `json:"fqdn2ip"`
+	ReverseIPLookup string `json:"reverseiplookup"`
 }
 
 // This map is used to store the mapping between IP addresses and hostnames.
@@ -50,7 +52,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	if !exists {
 		hostname = "unknown"
 	}
-	response := Response{IP: ip, Hostname: hostname}
+	//fqdn := 
+	reverseipslookup, err := net.LookupAddr(ip)
+	reverseiplookup := strings.TrimSpace(reverseipslookup[0])
+	fqdns2ip, err := net.LookupHost(reverseiplookup)
+	fqdn2ip := strings.TrimSpace(fqdns2ip[0])
+	response := Response{Hostname: hostname, ReverseIPLookup: reverseiplookup, IP: ip, FQDN2IP: fqdn2ip}
 	w.Header().Set("Content-Type", "application/json")
 
 	prettyJSON, err := json.MarshalIndent(response, "", "  ")
@@ -62,8 +69,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	port := ":8081"
-	if p := os.Getenv("PORT"); p != "" {
+	port := ":8080"
+	if p := os.Getenv("API_SERVER_PORT"); p != "" {
 		port = ":" + p
 	}
 	log.Printf("Starting server on %s", port)

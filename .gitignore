@@ -24,3 +24,4 @@ go.work.sum
 # env file
 .env
 server-info-api
+host_ip_map.db

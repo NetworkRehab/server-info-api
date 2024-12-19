@@ -50,6 +50,44 @@ export PORT=8081
 go run main.go
 ```
 
+### Importing Hostname Mappings from a CSV File
+
+You can import IP and hostname mappings into the SQLite database from a CSV file using the `-import` flag. The CSV file should contain IP addresses and hostnames in the following format:
+
+```csv
+<IP address>,<hostname>
+```
+
+Each line represents a mapping between an IP address and a hostname.
+
+#### Example CSV File
+
+```csv
+127.0.0.1,localhost
+192.168.1.2,host2
+10.0.0.1,host3.example.com
+```
+
+#### Importing the CSV File
+
+To import the CSV file into the database, run:
+
+```bash
+go run main.go -import data.csv
+```
+
+This command will read the CSV file `data.csv` and populate the `host_ip_map.db` SQLite database with the IP-hostname mappings.
+
+#### Running the Server After Import
+
+After importing the CSV data, start the server normally:
+
+```bash
+go run main.go
+```
+
+Now, when a request is made to the server, it will use the hostname mappings from the database.
+
 ## Example
 
 Make a request to the server to retrieve your IP and hostname:

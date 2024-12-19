@@ -1,6 +1,6 @@
 
 # Build stage
-FROM golang:1.23.4-bookwork AS builder
+FROM golang:1.23.4-bookworm AS builder
 
 WORKDIR /app
 

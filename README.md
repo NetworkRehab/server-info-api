@@ -28,6 +28,54 @@ go mod init github.com/networkrehab/server-info-api
 go mod tidy
 ```
 
+## Docker Usage
+
+You can run the service using Docker in two ways:
+
+### Building the Docker Image Locally
+
+Build and run the Docker image locally:
+
+```bash
+# Build the image
+docker build -t server-info-api .
+
+# Run the container
+docker run -d -p 8080:8080 server-info-api
+```
+
+### Using Pre-built Image from GitHub Container Registry
+
+Pull and run the latest image from GitHub Container Registry:
+
+```bash
+# Pull the image
+docker pull ghcr.io/networkrehab/server-info-api:latest
+
+# Run the container
+docker run -d -p 8080:8080 ghcr.io/networkrehab/server-info-api:latest
+```
+
+### Docker Environment Variables
+
+You can override the default port using the PORT environment variable:
+
+```bash
+docker run -d -p 8081:8081 -e PORT=8081 server-info-api
+```
+
+### Using with CSV Data
+
+To use a CSV file with Docker, you need to mount the file into the container:
+
+```bash
+docker run -d \
+  -p 8080:8080 \
+  -v $(pwd)/data.csv:/root/data.csv \
+  server-info-api \
+  ./server-info-api -import /root/data.csv
+```
+
 ## Usage
 
 Run the server using the `go run` command:

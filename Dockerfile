@@ -17,7 +17,7 @@ RUN go build -o server-info-api main.go
 # Final stage
 FROM alpine:latest
 
-WORKDIR /root/
+WORKDIR /app/
 
 # Copy the binary from the builder stage
 COPY --from=builder /app/server-info-api .
@@ -29,4 +29,4 @@ EXPOSE 8080
 ENV PORT=8080
 
 # Run the executable
-CMD ["./server-info-api"]
+CMD ["/app/server-info-api"]

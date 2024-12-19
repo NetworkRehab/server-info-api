@@ -43,10 +43,10 @@ go build -o server-info-api
 ./server-info-api
 ```
 
-The server listens on port `8081` by default. To specify a different port, set the `PORT` environment variable:
+The server listens on port `8080` by default. To specify a different port, set the `PORT` environment variable:
 
 ```bash
-export PORT=8080
+export PORT=8081
 go run main.go
 ```
 
@@ -55,7 +55,7 @@ go run main.go
 Make a request to the server to retrieve your IP and hostname:
 
 ```bash
-curl http://localhost:8081/
+curl http://localhost:8080/
 ```
 
 Sample JSON response:

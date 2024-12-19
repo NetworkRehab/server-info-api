@@ -12,70 +12,78 @@ import (
 type Response struct {
 	IP              string `json:"ip"`
 	Hostname        string `json:"hostname"`
-	FQDN2IP            string `json:"fqdn2ip"`
 	ReverseIPLookup string `json:"reverseiplookup"`
+	FQDN2IP         string `json:"fqdn2ip"`
 }
 
-// This map is used to store the mapping between IP addresses and hostnames.
-// This would be replaced with a lookup function to something like infoblox.
-var ipHostnameMap = map[string]string{
-	"127.0.0.1":   "localhost",
-	"192.168.1.2": "host2",
-	// ... add more IPs and hostnames as needed ...
-}
-
-func ReadUserIP(r *http.Request) string {
-	IPAddress := r.Header.Get("X-Real-Ip")
-	if IPAddress == "" {
-		IPAddress = r.Header.Get("X-Forwarded-For")
-		if IPAddress != "" {
-			// X-Forwarded-For may contain multiple IPs, take the first one
-			parts := strings.Split(IPAddress, ",")
-			IPAddress = strings.TrimSpace(parts[0])
-		}
+func ReadUserIP(httprequest *http.Request) string {
+	// Check X-Forwarded-For header
+	if ip := httprequest.Header.Get("X-Forwarded-For"); ip != "" {
+		ips := strings.Split(ip, ",")
+		return strings.TrimSpace(ips[0])
 	}
-	if IPAddress == "" {
-		ip, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			// Fallback to r.RemoteAddr if SplitHostPort fails
-			ip = r.RemoteAddr
-		}
-		IPAddress = ip
+	// Check X-Real-Ip header
+	if ip := httprequest.Header.Get("X-Real-Ip"); ip != "" {
+		return strings.TrimSpace(ip)
 	}
-	return IPAddress
+	// Fallback to RemoteAddr
+	ip, _, err := net.SplitHostPort(httprequest.RemoteAddr)
+	if err != nil {
+		return httprequest.RemoteAddr
+	}
+	return ip
 }
 
-func handler(w http.ResponseWriter, r *http.Request) {
-	ip := ReadUserIP(r)
-	log.Printf("Client IP: %s", ip)
-	hostname, exists := ipHostnameMap[ip]
-	if !exists {
+func handler(httpwriter http.ResponseWriter, httprequest *http.Request) {
+	clientIP := ReadUserIP(httprequest)
+	log.Printf("Client IP: %s", clientIP)
+
+	// Reverse DNS lookup to get hostname
+	hostnames, err := net.LookupAddr(clientIP)
+	var hostname string
+	if err == nil && len(hostnames) > 0 {
+		hostname = strings.TrimSuffix(hostnames[0], ".")
+	} else {
+		log.Printf("Reverse lookup failed for IP %s: %v", clientIP, err)
 		hostname = "unknown"
 	}
-	//fqdn := 
-	reverseipslookup, err := net.LookupAddr(ip)
-	reverseiplookup := strings.TrimSpace(reverseipslookup[0])
-	fqdns2ip, err := net.LookupHost(reverseiplookup)
-	fqdn2ip := strings.TrimSpace(fqdns2ip[0])
-	response := Response{Hostname: hostname, ReverseIPLookup: reverseiplookup, IP: ip, FQDN2IP: fqdn2ip}
-	w.Header().Set("Content-Type", "application/json")
+
+	// Forward DNS lookup from hostname to get IP
+	ipAddresses, err := net.LookupHost(hostname)
+	var fqdn2ip string
+	if err == nil && len(ipAddresses) > 0 {
+		fqdn2ip = ipAddresses[0]
+	} else {
+		log.Printf("Forward lookup failed for hostname %s: %v", hostname, err)
+		fqdn2ip = "unknown"
+	}
+
+	response := Response{
+		IP:              clientIP,
+		Hostname:        hostname,
+		ReverseIPLookup: hostname,
+		FQDN2IP:         fqdn2ip,
+	}
+
+	httpwriter.Header().Set("Content-Type", "application/json")
 
 	prettyJSON, err := json.MarshalIndent(response, "", "  ")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(httpwriter, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.Write(prettyJSON)
+	httpwriter.Write(prettyJSON)
 }
 
 func main() {
-	port := ":8080"
-	if p := os.Getenv("API_SERVER_PORT"); p != "" {
-		port = ":" + p
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
 	}
-	log.Printf("Starting server on %s", port)
+	address := ":" + port
+	log.Printf("Starting server on %s", address)
 	http.HandleFunc("/", handler)
-	if err := http.ListenAndServe(port, nil); err != nil {
+	if err := http.ListenAndServe(address, nil); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
 }

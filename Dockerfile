@@ -14,10 +14,10 @@ COPY . .
 RUN CGO_ENABLED=1 go build -o server-info-api main.go
 
 # Final stage
-FROM debian:stable AS final
+FROM golang:1.23.4-bookworm AS final
 
 # Install required dependencies for SQLite
-RUN apk add --no-cache libc6-compat
+# RUN apt add --no-cache libc6-compat
 
 WORKDIR /app
 

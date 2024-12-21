@@ -21,12 +21,15 @@ RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
-# Copy the binary from the builder stage to the correct location
-COPY --from=builder /build/server-info-api /app/
-COPY --from=builder /build/data.csv /app/
-
 # Create directory for SQLite database
 RUN mkdir -p /app/data
+
+# Copy the binary from the builder stage to the correct location
+COPY --from=builder /build/server-info-api /app/
+COPY --from=builder /build/data.csv /app/data
+
+# ensure executable is ...well .. executable. 
+RUN chmod +x /app/server-info-api
 
 # Expose the application port
 EXPOSE 8080

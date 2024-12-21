@@ -1,16 +1,21 @@
 # Server Info API
 
-A simple Go web server that returns a JSON object with the client's IP address and hostname information.
+A simple Go web server that returns a JSON object with the client's IP address and hostname information. This is intended to be an example project to act like Azure's metadata service, but with a focus on IP address and hostname information. It is not supposed to be feature complete. That is why it is a simple project so that you have a good base to add your own features.
 
 ## Features
 
-- Retrieves the client's IP address from HTTP request headers or remote address.
-- Returns the information in a formatted JSON response.
-- Configurable server port via an environment variable.
+- Retrieves the client's IP address from HTTP request headers or remote address
+- Performs reverse DNS lookups for IP addresses
+- Stores IP to hostname mappings in SQLite database
+- Supports CSV import of IP/hostname mappings
+- Configurable server port via environment variable
+- Available as multi-architecture Docker image (AMD64 and ARM64)
 
 ## Prerequisites
 
-- Go 1.17 or later installed on your system.
+Go 1.17 or later installed on your system at a minimum. The docker image is built with Go 1.23.4.  
+
+You can download Go from the [official website](https://golang.org/dl/).
 
 ## Installation
 
@@ -40,8 +45,11 @@ Build and run the Docker image locally:
 # Build the image
 docker build -t server-info-api .
 
-# Run the container
-docker run -d -p 8080:8080 server-info-api
+# Run the container with database persistence
+docker run -d \
+  -p 8080:8080 \
+  -v $(pwd)/data:/app/data \
+  server-info-api
 ```
 
 ### Using Pre-built Image from GitHub Container Registry
@@ -49,11 +57,14 @@ docker run -d -p 8080:8080 server-info-api
 Pull and run the latest image from GitHub Container Registry:
 
 ```bash
-# Pull the image
-docker pull ghcr.io/networkrehab/server-info-api:latest
+# Pull the image (automatically selects correct architecture)
+docker pull ghcr.io/networkrehab/server-info-api:main
 
-# Run the container
-docker run -d -p 8080:8080 ghcr.io/networkrehab/server-info-api:latest
+# Run the container with database persistence
+docker run -d \
+  -p 8080:8080 \
+  -v $(pwd)/data:/app/data \
+  ghcr.io/networkrehab/server-info-api:main
 ```
 
 ### Docker Environment Variables
@@ -61,19 +72,26 @@ docker run -d -p 8080:8080 ghcr.io/networkrehab/server-info-api:latest
 You can override the default port using the PORT environment variable:
 
 ```bash
-docker run -d -p 8081:8081 -e PORT=8081 server-info-api
+# Override the default port
+docker run -d \
+  -p 8081:8081 \
+  -e PORT=8081 \
+  -v $(pwd)/data:/app/data \
+  server-info-api
 ```
 
 ### Using with CSV Data
 
-To use a CSV file with Docker, you need to mount the file into the container:
+To import a CSV file with Docker:
 
 ```bash
+# Mount both the CSV file and database directory
 docker run -d \
   -p 8080:8080 \
-  -v $(pwd)/data.csv:/root/data.csv \
+  -v $(pwd)/data.csv:/app/data.csv \
+  -v $(pwd)/data:/app/data \
   server-info-api \
-  ./server-info-api -import /root/data.csv
+  /app/server-info-api -import /app/data.csv
 ```
 
 ## Usage
@@ -138,7 +156,7 @@ Now, when a request is made to the server, it will use the hostname mappings fro
 
 ## Example
 
-Make a request to the server to retrieve your IP and hostname:
+Make a request to the server:
 
 ```bash
 curl http://localhost:8080/
@@ -148,10 +166,37 @@ Sample JSON response:
 
 ```json
 {
-  "IP": "127.0.0.1",
-  "Hostname": "localhost"
+  "ip": "192.168.1.100",
+  "hostname": "myhost.local",
+  "reverseiplookup": "myhost.mydomain.com",
+  "fqdn2ip": "192.168.1.100"
 }
 ```
+
+## Database Persistence
+
+The SQLite database is stored in `/app/data` within the container. To persist the database between container restarts:
+
+1. Create a local directory for the database:
+```bash
+mkdir -p ./data
+```
+
+2. Mount the directory when running the container:
+```bash
+docker run -d \
+  -p 8080:8080 \
+  -v $(pwd)/data:/app/data \
+  server-info-api
+```
+
+## Architecture Support
+
+The Docker image is available for multiple architectures:
+- AMD64 (x86_64)
+- ARM64 (aarch64)
+
+Docker will automatically pull the correct image for your system architecture.
 
 ## Contributing
 

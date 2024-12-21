@@ -14,7 +14,7 @@ COPY . .
 RUN CGO_ENABLED=1 go build -o server-info-api main.go
 
 # Final stage
-FROM debian:bookwork-slim AS final
+FROM debian:stable-slim AS final
 
 # Install required dependencies for SQLite
 RUN apk add --no-cache libc6-compat
